@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geopolitica — Journal Géopolitique de l'École Internationale de Tunis (EIT)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Apache ECharts + Carte Mondiale Officielle (world.js) pour une cartographie géographique instantanée -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+    <!-- Polices éditoriales : Playfair Display & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            950: '#060a17',
+                            900: '#0b132b',
+                            800: '#1c2541',
+                            700: '#2b3a67',
+                        },
+                        accent: {
+                            DEFAULT: '#f97316',
+                            hover: '#ea580c',
+                            gold: '#f59e0b'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #060a17;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Animation du globe terrestre 3D rotatif à côté du titre */
+        @keyframes spinGlobe {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .globe-3d-container {
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 30% 30%, #38bdf8 0%, #0284c7 45%, #0b132b 92%);
+            box-shadow:
+                inset -10px -10px 18px rgba(6, 10, 23, 0.85),
+                inset 6px 6px 12px rgba(186, 230, 253, 0.45),
+                0 0 22px rgba(249, 115, 22, 0.4);
+            border: 1.5px solid rgba(249, 115, 22, 0.65);
+            flex-shrink: 0;
+        }
+
+        .globe-continents-track {
+            display: flex;
+            width: 200%;
+            height: 100%;
+            animation: spinGlobe 16s linear infinite;
+        }
+
+        .globe-glare {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle at 28% 25%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 45%);
+            pointer-events: none;
+        }
+
+        /* Ruban défilant d'actualités */
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .ticker-track {
+            display: flex;
+            width: max-content;
+            animation: ticker 45s linear infinite;
+        }
+        .ticker-track:hover {
+            animation-play-state: paused;
+        }
+
+        /* Scrollbar personnalisée */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #060a17;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f97316;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-orange-500 selection:text-white">
+
+    <!-- BANDEAU SUPÉRIEUR : RENOUVELLEMENT AUTOMATIQUE TOUS LES 3 JOURS (72H) -->
+    <div class="bg-navy-950 text-slate-200 border-b border-slate-800 text-xs py-2.5 px-4">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 bg-orange-500/20 text-orange-400 border border-orange-500/40 px-3 py-0.5 rounded-full font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
+                    Édition automatique — Renouvellement toutes les 72h
+                </span>
+                <span id="edition-badge" class="hidden sm:inline text-slate-400 font-medium"></span>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <span id="current-date-display" class="text-slate-300 font-medium"></span>
+                <span class="bg-navy-800 border border-amber-500/30 px-3 py-1 rounded-lg text-amber-400 font-mono font-semibold">
+                    Prochaine édition dans <strong id="countdown-timer" class="text-white">--j --h --m --s</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- EN-TÊTE PRINCIPAL (SANS AUCUN LOGO) -->
+    <header class="bg-gradient-to-b from-navy-900 to-navy-950 text-white border-b-4 border-orange-500 shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
+
+                <!-- TITRE GEOPOLITICA + GLOBE 3D ROTATIF ANIMÉ EN CONTINU -->
+                <div class="text-center lg:text-left flex-1">
+                    <div class="inline-flex items-center justify-center lg:justify-start gap-4">
+                        <!-- Globe Terrestre 3D Rotatif -->
+                        <div class="globe-3d-container" aria-hidden="true" title="Globe terrestre 3D en rotation continue">
+                            <div class="globe-continents-track">
+                                <svg viewBox="0 0 200 100" class="w-1/2 h-full" preserveAspectRatio="none">
+                                    <path d="M12,18 L34,15 L42,32 L28,44 L15,36 Z" fill="#22c55e" opacity="0.9"/>
+                                    <path d="M26,48 L38,52 L42,78 L30,86 L24,66 Z" fill="#16a34a" opacity="0.9"/>
+                                    <path d="M58,20 L84,18 L92,34 L72,42 L60,34 Z" fill="#22c55e" opacity="0.9"/>
+                                    <path d="M56,44 L76,46 L80,74 L64,82 L55,62 Z" fill="#15803d" opacity="0.9"/>
+                                </svg>
+                                <svg viewBox="0 0 200 100" class="w-1/2 h-full" preserveAspectRatio="none">
+                                    <path d="M12,18 L34,15 L42,32 L28,44 L15,36 Z" fill="#22c55e" opacity="0.9"/>
+                                    <path d="M26,48 L38,52 L42,78 L30,86 L24,66 Z" fill="#16a34a" opacity="0.9"/>
+                                    <path d="M58,20 L84,18 L92,34 L72,42 L60,34 Z" fill="#22c55e" opacity="0.9"/>
+                                    <path d="M56,44 L76,46 L80,74 L64,82 L55,62 Z" fill="#15803d" opacity="0.9"/>
+                                </svg>
+                            </div>
+                            <div class="globe-glare"></div>
+                        </div>
+
+                        <div>
+                            <div class="text-[11px] uppercase tracking-[0.25em] text-amber-400 font-bold mb-0.5">
+                                Le Journal d'Analyse Internationale
+                            </div>
+                            <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white">
+                                GEO<span class="text-orange-500">POLITICA</span>
+                            </h1>
+                        </div>
+                    </div>
+
+                    <p class="mt-3 text-sm sm:text-base text-slate-300 font-medium max-w-3xl">
+                        Rédigé par les élèves de <span class="text-amber-400 font-bold">Seconde et Première HGGSP</span> de l'<span class="text-white font-bold">École Internationale de Tunis (EIT)</span>
+                    </p>
+                </div>
+
+                <!-- BOUTON PROPOSER UNE IDÉE D'ARTICLE -->
+                <div class="flex flex-col items-center lg:items-end gap-2 shrink-0">
+                    <button id="open-propose-modal" class="inline-flex items-center gap-2.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-orange-500/30 transition-all cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Proposer une idée d'article
+                    </button>
+                    <span class="text-[11px] text-slate-400">Comité de rédaction HGGSP — EIT</span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- FIL D'ACTUALITÉ DÉFILANT -->
+        <div class="bg-navy-950 border-t border-slate-800 py-2.5 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 flex items-center gap-3">
+                <span class="bg-orange-600 text-white text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded shrink-0">
+                    À la Une
+                </span>
+                <div class="overflow-hidden flex-1 relative">
+                    <div id="news-ticker" class="ticker-track text-xs text-slate-300 font-medium gap-10">
+                        <!-- Injecté dynamiquement par JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+        <!-- SECTION 1 : VÉRITABLE CARTE GÉOGRAPHIQUE DU MONDE INTERACTIVE (ECHARTS WORLD GEOJSON) -->
+        <section aria-labelledby="map-section-title" class="bg-navy-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden">
+            <!-- Barre de contrôle de la carte -->
+            <div class="p-5 sm:p-6 border-b border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                        <h2 id="map-section-title" class="font-serif text-xl sm:text-2xl font-bold text-white">
+                            Planisphère Géopolitique Interactif
+                        </h2>
+                    </div>
+                    <p class="text-slate-400 text-xs sm:text-sm mt-1">
+                        Survolez un continent pour illuminer l'ensemble de ses frontières et cliquez dessus pour filtrer les articles correspondants.
+                    </p>
+                </div>
+
+                <!-- Boutons de sélection rapide + Réinitialisation -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="reset-filter-btn" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-orange-500 text-white shadow transition-all cursor-pointer">
+                        Tous les continents (<span id="total-articles-count">0</span>)
+                    </button>
+                    <div id="continent-pills" class="flex flex-wrap gap-1.5">
+                        <!-- Pilules générées par JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conteneur de la véritable carte géographique ECharts -->
+            <div class="relative bg-gradient-to-b from-[#071126] via-[#0c1c3d] to-[#071126] p-2 sm:p-4">
+                <div id="echarts-world-map" class="w-full h-[360px] sm:h-[480px] lg:h-[540px]" role="img" aria-label="Carte du monde géographique interactive des 6 continents"></div>
+
+                <!-- Légende bas de carte -->
+                <div class="mt-2 px-3 py-2 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 border-t border-slate-800/80">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-sm bg-[#26365e] border border-slate-500"></span>
+                            Continent
+                        </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-sm bg-[#f97316]"></span>
+                            Survol / Sélection active
+                        </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
+                            Tunis (EIT)
+                        </span>
+                    </div>
+                    <div class="text-slate-400 italic">
+                        Cartographie mondiale interactive — 6 continents & frontières internationales
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BANDEAU DU CONTINENT ACTIF (AFFICHÉ LORS D'UN FILTRE) -->
+        <div id="active-continent-banner" class="hidden bg-gradient-to-r from-navy-900 via-navy-800 to-navy-900 border-l-4 border-orange-500 text-white p-5 rounded-xl shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <span class="text-xs uppercase tracking-widest text-orange-400 font-bold">Focus Régional Actif</span>
+                <h3 id="banner-continent-title" class="font-serif text-2xl font-bold mt-0.5">Europe</h3>
+                <p id="banner-continent-desc" class="text-sm text-slate-300 mt-1">Analyses géopolitiques sélectionnées par la rédaction HGGSP.</p>
+            </div>
+            <button id="banner-reset-btn" class="self-start sm:self-center bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow transition-colors cursor-pointer shrink-0">
+                Tous les continents
+            </button>
+        </div>
+
+        <!-- SECTION 2 : GRILLE ÉDITORIALE DES ARTICLES (RENOUVELÉS AUTOMATIQUEMENT TOUS LES 3 JOURS) -->
+        <section id="articles-anchor" aria-labelledby="articles-section-title" class="space-y-6 scroll-mt-6">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-800 pb-4">
+                <div>
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-amber-400">Dossiers & Analyses HGGSP</span>
+                    <h2 id="articles-section-title" class="font-serif text-2xl sm:text-3xl font-black text-white mt-0.5">
+                        Édition Actuelle — Tous les Continents
+                    </h2>
+                </div>
+                <div class="text-xs text-slate-400 font-medium">
+                    <span id="visible-articles-count" class="font-bold text-orange-400">0</span> article(s) affiché(s) • Rotation automatique 72h
+                </div>
+            </div>
+
+            <!-- Article Principal "À la Une" -->
+            <div id="featured-article-container">
+                <!-- Injecté dynamiquement -->
+            </div>
+
+            <!-- Grille des autres articles -->
+            <div id="articles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cartes d'articles injectées dynamiquement -->
+            </div>
+        </section>
+
+        <!-- SECTION 3 : PRÉSENTATION DE LA RÉDACTION HGGSP & DU CLUB CITOYENNETÉ MONDIALE (SANS AUCUN LOGO) -->
+        <section aria-labelledby="club-section-title" class="bg-navy-900 rounded-2xl border border-slate-800 shadow-xl p-6 sm:p-8">
+            <div class="space-y-4">
+                <div class="inline-flex items-center gap-2 bg-amber-500/15 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                    Initiative Pédagogique & Citoyenne • École Internationale de Tunis (EIT)
+                </div>
+                <h2 id="club-section-title" class="font-serif text-2xl sm:text-3xl font-bold text-white">
+                    Club Éducation à la Citoyenneté Mondiale & Spécialité HGGSP
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-4xl">
+                    <strong class="text-white">Geopolitica</strong> est le journal d'analyse internationale rédigé collectivement par les élèves de <strong class="text-amber-400">Seconde et Première HGGSP (Histoire-Géographie, Géopolitique et Sciences Politiques)</strong> de l'<strong class="text-white">École Internationale de Tunis (EIT)</strong>. Chaque édition explore les grands équilibres mondiaux, les transitions énergétiques, les espaces maritimes et les enjeux diplomatiques sur les six continents.
+                </p>
+                <div class="pt-2 flex flex-wrap gap-3">
+                    <span class="text-xs font-semibold bg-navy-950 text-slate-200 px-3.5 py-2 rounded-lg border border-slate-800">
+                        Rédaction collective Seconde & Première HGGSP
+                    </span>
+                    <span class="text-xs font-semibold bg-navy-950 text-slate-200 px-3.5 py-2 rounded-lg border border-slate-800">
+                        Veille internationale renouvelée toutes les 72h
+                    </span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- PIED DE PAGE (SANS AUCUN LOGO) -->
+    <footer class="bg-navy-950 text-slate-300 border-t-4 border-orange-500 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="text-center md:text-left">
+                    <div class="font-serif text-2xl font-black text-white">
+                        GEO<span class="text-orange-500">POLITICA</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">
+                        École Internationale de Tunis (EIT) — Club Éducation à la Citoyenneté Mondiale & HGGSP
+                    </p>
+                </div>
+
+                <div class="text-center md:text-right space-y-1 text-xs text-slate-400">
+                    <p class="text-slate-200 font-semibold">Rédaction HGGSP — Élèves de Seconde & Première (EIT)</p>
+                    <p>Contact éditorial : <a href="mailto:badis.klingen@gmail.com" class="text-orange-400 hover:underline font-medium">badis.klingen@gmail.com</a></p>
+                    <p class="text-[11px] text-slate-500 pt-1">© 2026 Geopolitica EIT — Publication pédagogique autonome à renouvellement automatique (72h).</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- MODALE 1 : LECTURE COMPLÈTE D'UN ARTICLE                              -->
+    <!-- ===================================================================== -->
+    <div id="article-modal" class="fixed inset-0 z-50 hidden bg-navy-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-article-title">
+        <div class="bg-navy-900 text-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-700 overflow-hidden my-8">
+            <div class="bg-navy-950 p-6 sm:p-8 relative border-b border-slate-800">
+                <button id="close-article-modal" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-orange-500 text-white flex items-center justify-center transition-colors cursor-pointer" aria-label="Fermer l'article">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <div class="flex flex-wrap items-center gap-2 text-xs font-bold mb-3">
+                    <span id="modal-article-continent" class="bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-wider">Continent</span>
+                    <span id="modal-article-theme" class="bg-navy-800 text-amber-300 border border-slate-700 px-3 py-1 rounded-full">Thématique</span>
+                    <span id="modal-article-date" class="text-slate-400 ml-1">Date</span>
+                </div>
+                <h2 id="modal-article-title" class="font-serif text-2xl sm:text-3xl font-black leading-tight text-white">
+                    Titre de l'article
+                </h2>
+                <p id="modal-article-signature" class="text-xs sm:text-sm text-orange-300 font-semibold mt-3">
+                    Rédaction HGGSP — Élèves de Seconde & Première (EIT)
+                </p>
+            </div>
+
+            <div class="p-6 sm:p-8 space-y-6 max-h-[65vh] overflow-y-auto">
+                <p id="modal-article-lead" class="text-base sm:text-lg font-semibold text-slate-100 leading-relaxed border-l-4 border-orange-500 pl-4 bg-navy-950/70 py-3 rounded-r-lg">
+                </p>
+
+                <div class="bg-navy-950 border border-slate-800 rounded-xl p-4">
+                    <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                        Repères & Notions Clés HGGSP
+                    </h4>
+                    <ul id="modal-article-keypoints" class="text-xs sm:text-sm text-slate-300 space-y-1.5 list-disc list-inside">
+                    </ul>
+                </div>
+
+                <div id="modal-article-body" class="space-y-4 text-slate-300 text-sm sm:text-base leading-relaxed">
+                </div>
+            </div>
+
+            <div class="bg-navy-950 px-6 py-4 border-t border-slate-800 flex items-center justify-between">
+                <span class="text-xs text-slate-400 font-medium">Geopolitica • École Internationale de Tunis (EIT)</span>
+                <button id="close-article-modal-bottom" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors cursor-pointer">
+                    Fermer la lecture
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODALE 2 : FORMULAIRE DE PROPOSITION D'IDÉES D'ARTICLES               -->
+    <!-- ===================================================================== -->
+    <div id="propose-modal" class="fixed inset-0 z-50 hidden bg-navy-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="propose-modal-title">
+        <div class="bg-navy-900 text-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-700 overflow-hidden my-8">
+            <div class="bg-navy-950 p-6 flex items-center justify-between border-b-4 border-orange-500">
+                <div>
+                    <span class="text-[11px] uppercase tracking-widest text-orange-400 font-bold">Comité de Rédaction EIT</span>
+                    <h2 id="propose-modal-title" class="font-serif text-2xl font-bold mt-0.5 text-white">Proposer une idée d'article</h2>
+                </div>
+                <button id="close-propose-modal" class="w-9 h-9 rounded-full bg-white/10 hover:bg-orange-500 text-white flex items-center justify-center transition-colors cursor-pointer" aria-label="Fermer le formulaire">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="propose-form" class="p-6 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="prop-theme" class="block text-xs font-bold uppercase tracking-wide text-amber-400 mb-1.5">
+                            Type d'article *
+                        </label>
+                        <select id="prop-theme" required class="w-full rounded-xl border border-slate-700 bg-navy-950 px-3.5 py-2.5 text-sm text-white focus:border-orange-500 outline-none">
+                            <option value="Analyse géopolitique">Analyse géopolitique</option>
+                            <option value="Actualité par continent">Actualité par continent</option>
+                            <option value="Débat / Tribune">Débat / Tribune</option>
+                            <option value="Histoire & Relations internationales">Histoire & Relations internationales</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="prop-continent" class="block text-xs font-bold uppercase tracking-wide text-amber-400 mb-1.5">
+                            Continent concerné *
+                        </label>
+                        <select id="prop-continent" required class="w-full rounded-xl border border-slate-700 bg-navy-950 px-3.5 py-2.5 text-sm text-white focus:border-orange-500 outline-none">
+                            <option value="Afrique">Afrique</option>
+                            <option value="Europe">Europe</option>
+                            <option value="Asie">Asie</option>
+                            <option value="Amérique du Nord">Amérique du Nord</option>
+                            <option value="Amérique du Sud">Amérique du Sud</option>
+                            <option value="Océanie">Océanie</option>
+                            <option value="Monde / Transversal">Monde / Transversal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="prop-level" class="block text-xs font-bold uppercase tracking-wide text-amber-400 mb-1.5">
+                        Classe à l'EIT *
+                    </label>
+                    <select id="prop-level" required class="w-full rounded-xl border border-slate-700 bg-navy-950 px-3.5 py-2.5 text-sm text-white focus:border-orange-500 outline-none">
+                        <option value="Seconde HGGSP">Seconde HGGSP</option>
+                        <option value="Première HGGSP">Première HGGSP</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="prop-title" class="block text-xs font-bold uppercase tracking-wide text-amber-400 mb-1.5">
+                        Titre ou sujet envisagé *
+                    </label>
+                    <input type="text" id="prop-title" required placeholder="Ex : Les enjeux stratégiques des câbles sous-marins en Méditerranée..." class="w-full rounded-xl border border-slate-700 bg-navy-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-orange-500 outline-none">
+                </div>
+
+                <div>
+                    <label for="prop-summary" class="block text-xs font-bold uppercase tracking-wide text-amber-400 mb-1.5">
+                        Résumé & problématique HGGSP *
+                    </label>
+                    <textarea id="prop-summary" rows="4" required placeholder="Présentez brièvement les acteurs, les espaces concernés et l'angle d'analyse souhaité..." class="w-full rounded-xl border border-slate-700 bg-navy-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-orange-500 outline-none"></textarea>
+                </div>
+
+                <div class="bg-navy-950/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2 text-xs">
+                    <span class="text-slate-400">Destinataire : <strong class="text-orange-400">badis.klingen@gmail.com</strong></span>
+                    <button type="button" id="copy-email-only-btn" class="text-amber-400 hover:underline font-semibold cursor-pointer">
+                        Copier l'adresse
+                    </button>
+                </div>
+
+                <div id="copy-feedback" class="hidden bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-semibold px-4 py-2.5 rounded-xl">
+                    Copié dans le presse-papiers !
+                </div>
+
+                <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                    <button type="button" id="copy-proposal-btn" class="inline-flex items-center justify-center gap-2 bg-navy-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-600 transition-colors cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Copier le message complet
+                    </button>
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-orange-500/25 transition-colors cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Envoyer par e-mail
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SCRIPT PRINCIPAL                                                      -->
+    <!-- ===================================================================== -->
+    <script>
+        (function () {
+            "use strict";
+
+            // 1. BASE DE DONNÉES D'ARTICLES GÉOPOLITIQUES COUVRANT LES 6 CONTINENTS
+            const ARTICLES_DATABASE = [
+                // --- AFRIQUE ---
+                {
+                    id: "af-1",
+                    continent: "Afrique",
+                    theme: "Transition Énergétique & Méditerranée",
+                    title: "Corridors solaires et hydrogène vert : la Tunisie au carrefour énergétique euro-africain",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Grâce à son potentiel d'ensoleillement exceptionnel et à sa proximité immédiate avec l'Europe, la Tunisie accélère ses grands projets d'interconnexion électrique sous-marine et de production d'hydrogène décarboné.",
+                    keypoints: [
+                        "Interconnexion électrique ELMED entre le Cap Bon et la Sicile (600 MW)",
+                        "Stratégie nationale de l'hydrogène vert à l'horizon 2030-2050",
+                        "Nouvelle diplomatie énergétique entre l'Union européenne et le Maghreb"
+                    ],
+                    paragraphs: [
+                        "En 2026, la transition énergétique redessine profondément les équilibres géopolitiques en Méditerranée occidentale. Située à moins de 150 kilomètres des côtes italiennes, la Tunisie occupe une position géographique stratégique pour devenir un pont énergétique durable entre le continent africain et l'Union européenne.",
+                        "Le chantier de l'interconnexion électrique sous-marine ELMED illustre cette coopération concrète : ce câble à haute tension permet d'échanger de l'électricité produite à partir de centrales photovoltaïques et éoliennes du sud tunisien vers le réseau européen, renforçant la sécurité d'approvisionnement des deux rives.",
+                        "Pour les élèves de HGGSP, ce dossier met en lumière l'évolution de la notion de puissance énergétique : aux hydrocarbures traditionnels succède désormais la maîtrise des réseaux électriques intelligents, des terres rares et des molécules vertes."
+                    ]
+                },
+                {
+                    id: "af-2",
+                    continent: "Afrique",
+                    theme: "Intégration Régionale & Économie",
+                    title: "La ZLECAf : accélérer les échanges intra-africains face aux chocs mondiaux",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "La Zone de Libre-Échange Continentale Africaine franchit une nouvelle étape opérationnelle avec le déploiement des systèmes de paiement panafricains et la modernisation des corridors logistiques.",
+                    keypoints: [
+                        "Plus grand espace commercial au monde par le nombre d'États membres (54 pays)",
+                        "Système panafricain de paiement et de règlement (PAPSS) en monnaies locales",
+                        "Développement des infrastructures ferroviaires et portuaires transfrontalières"
+                    ],
+                    paragraphs: [
+                        "Longtemps tournées vers l'exportation de matières premières brutes hors du continent, les économies africaines misent désormais sur l'intégration régionale pour renforcer leur souveraineté industrielle et alimentaire.",
+                        "La mise en œuvre progressive du démantèlement tarifaire dans le cadre de la ZLECAf s'accompagne d'investissements massifs dans les corridors de transport reliant les ports atlantiques, méditerranéens et de l'océan Indien aux pays enclavés.",
+                        "L'enjeu géopolitique majeur réside dans la capacité des communautés économiques régionales à harmoniser leurs normes douanières afin de transformer le dynamisme démographique africain en levier de croissance endogène."
+                    ]
+                },
+                {
+                    id: "af-3",
+                    continent: "Afrique",
+                    theme: "Espaces Maritimes & Ressources",
+                    title: "Sécurité maritime dans le golfe de Guinée et en mer Rouge : deux façades stratégiques sous haute surveillance",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Des détroits de Bab-el-Mandeb aux eaux riches en hydrocarbures du golfe de Guinée, la sécurisation des routes maritimes africaines mobilise des coalitions régionales inédites.",
+                    keypoints: [
+                        "Architecture de Yaoundé pour la coopération maritime en Afrique de l'Ouest et du Centre",
+                        "Importance vitale du canal de Suez et du détroit de Bab-el-Mandeb pour le commerce mondial",
+                        "Enjeux de la pêche durable et de la protection des zones économiques exclusives (ZEE)"
+                    ],
+                    paragraphs: [
+                        "Près de 90 % du commerce extérieur des États africains transite par voie maritime. La maîtrise des ports en eau profonde et la surveillance des détroits constituent donc des priorités absolues de souveraineté.",
+                        "Dans le golfe de Guinée, la coopération entre marines nationales et centres régionaux de coordination a permis une baisse notable des actes de piraterie, ouvrant la voie à une économie bleue plus sûre.",
+                        "À l'est, les tensions persistantes autour de la mer Rouge rappellent combien la stabilité des détroits conditionne directement les chaînes d'approvisionnement mondiales entre l'Asie, l'Afrique et l'Europe."
+                    ]
+                },
+
+                // --- EUROPE ---
+                {
+                    id: "eu-1",
+                    continent: "Europe",
+                    theme: "Puissance & Souveraineté Industrielle",
+                    title: "L'Union européenne face au défi de l'autonomie stratégique technologique et spatiale",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Entre le déploiement de la constellation souveraine IRIS² et le règlement européen sur les semi-conducteurs, Bruxelles cherche à réduire ses dépendances critiques.",
+                    keypoints: [
+                        "Constellation européenne de satellites de communication sécurisée IRIS²",
+                        "European Chips Act : relocalisation de la production de semi-conducteurs",
+                        "Débat entre libre-échange historique et protection des secteurs stratégiques"
+                    ],
+                    paragraphs: [
+                        "Longtemps pensée avant tout comme un grand marché intérieur régulateur, l'Union européenne opère en 2026 un tournant géopolitique assumé vers la notion d'autonomie stratégique.",
+                        "Dans le domaine spatial, le programme IRIS² vise à doter les États membres d'une connectivité souveraine résiliente, indispensable tant pour la gestion des crises civiles que pour la sécurité des infrastructures critiques.",
+                        "Cette mutation interroge l'équilibre institutionnel européen : comment concilier les intérêts industriels des 27 États membres tout en finançant des biens publics européens à la hauteur des puissances américaine et chinoise ?"
+                    ]
+                },
+                {
+                    id: "eu-2",
+                    continent: "Europe",
+                    theme: "Frontières & Coopération Régionale",
+                    title: "La mer Baltique : un espace maritime européen en pleine recomposition stratégique",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Devenue un espace quasi intérieur à l'Union européenne et à l'OTAN, la mer Baltique concentre aujourd'hui des enjeux majeurs de protection des câbles sous-marins et d'éolien offshore.",
+                    keypoints: [
+                        "Protection des infrastructures énergétiques et numériques sous-marines",
+                        "Coopération renforcée entre pays nordiques et États baltes",
+                        "Transition accélérée vers l'éolien en mer pour sortir des énergies fossiles"
+                    ],
+                    paragraphs: [
+                        "Carrefour historique des échanges commerciaux en Europe du Nord depuis la Ligue hanséatique, la mer Baltique connaît une transformation géopolitique profonde.",
+                        "La densité des gazoducs, des interconnexions électriques et des câbles de télécommunication reposant sur ses fonds peu profonds en fait un laboratoire de la surveillance maritime moderne par drones sous-marins.",
+                        "Parallèlement, les États riverains multiplient les parcs éoliens offshore interconnectés, faisant de ce bassin maritime un pilier de la décarbonation du continent européen."
+                    ]
+                },
+                {
+                    id: "eu-3",
+                    continent: "Europe",
+                    theme: "Environnement & Gouvernance",
+                    title: "Le Pacte vert européen à l'épreuve de la compétitivité industrielle et agricole",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Mise en œuvre pleine du mécanisme d'ajustement carbone aux frontières (MACF) : comment l'Europe tente d'exporter ses normes climatiques sans isoler son industrie.",
+                    keypoints: [
+                        "Mécanisme d'Ajustement Carbone aux Frontières (MACF) appliqué à l'acier, au ciment et à l'aluminium",
+                        "Tensions entre objectifs de neutralité carbone 2050 et maintien de l'emploi industriel",
+                        "Influence normative de l'UE (« effet Bruxelles ») sur les partenaires commerciaux"
+                    ],
+                    paragraphs: [
+                        "En instaurant une tarification carbone sur certaines importations industrielles, l'Union européenne inaugure un outil inédit de diplomatie climatique et commerciale.",
+                        "L'objectif est double : éviter les « fuites de carbone » vers des pays aux normes environnementales moins strictes et inciter les partenaires internationaux à décarboner leurs propres chaînes de production.",
+                        "Ce dispositif suscite toutefois d'intenses négociations diplomatiques avec les pays émergents, qui y voient parfois une barrière commerciale déguisée, illustrant la complexité de la gouvernance climatique mondiale."
+                    ]
+                },
+
+                // --- ASIE ---
+                {
+                    id: "as-1",
+                    continent: "Asie",
+                    theme: "Rivalités & Routes Commerciales",
+                    title: "Le détroit de Malacca et l'espace Indo-Pacifique : artères vitales de la mondialisation",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Par où transitent près d'un tiers des échanges maritimes mondiaux, le détroit de Malacca cristallise les stratégies de contournement terrestre et portuaire des puissances asiatiques.",
+                    keypoints: [
+                        "Goulot d'étranglement stratégique entre océan Indien et mer de Chine méridionale",
+                        "Rôle central de Singapour et des États membres de l'ASEAN",
+                        "Développement de corridors ferroviaires alternatifs en Asie du Sud-Est"
+                    ],
+                    paragraphs: [
+                        "Large de moins de trois kilomètres en son point le plus étroit, le détroit de Malacca demeure l'un des points névralgiques de l'économie mondiale.",
+                        "Pour réduire leur vulnérabilité face à un éventuel blocage de ce passage, les grandes économies asiatiques investissent dans des liaisons ferroviaires à grande vitesse traversant la péninsule indochinoise ainsi que dans des oléoducs terrestres.",
+                        "Face aux rivalités entre grandes puissances, l'ASEAN (Association des nations de l'Asie du Sud-Est) s'efforce de préserver sa « centralité » diplomatique en refusant tout alignement exclusif."
+                    ]
+                },
+                {
+                    id: "as-2",
+                    continent: "Asie",
+                    theme: "Démographie & Puissance Économique",
+                    title: "L'Inde : puissance démographique, numérique et spatiale en pleine ascension",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Première population mondiale et moteur de la croissance asiatique, l'Inde affirme une diplomatie « multi-alignée » tout en investissant massivement dans ses infrastructures.",
+                    keypoints: [
+                        "Diplomatie du « multi-alignement » entre le Quad, les BRICS+ et le Sud global",
+                        "Révolution des infrastructures numériques publiques (identité biométrique et paiements instantanés)",
+                        "Défis environnementaux : stress hydrique, mousson et transition énergétique"
+                    ],
+                    paragraphs: [
+                        "En 2026, l'Inde consolide son statut de puissance incontournable sur la scène internationale, portée par une population jeune et un secteur technologique en plein essor.",
+                        "Sur le plan diplomatique, New Delhi pratique un multi-alignement agile, dialoguant aussi bien avec les États-Unis et l'Union européenne qu'avec les membres des BRICS+, tout en se positionnant comme porte-parole du Sud global.",
+                        "L'enjeu intérieur majeur reste toutefois de convertir ce dividende démographique en emplois industriels qualifiés tout en adaptant les grandes métropoles au dérèglement climatique."
+                    ]
+                },
+                {
+                    id: "as-3",
+                    continent: "Asie",
+                    theme: "Technologies & Ressources",
+                    title: "La bataille des semi-conducteurs en Asie de l'Est : Taïwan, Corée du Sud et Japon",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Le triangle technologique d'Asie de l'Est concentre plus de 75 % des capacités mondiales de gravure de puces électroniques avancées, au cœur de la révolution de l'intelligence artificielle.",
+                    keypoints: [
+                        "Le « bouclier de silicium » taïwanais au centre des chaînes de valeur mondiales",
+                        "Subventions massives du Japon et de la Corée du Sud pour sécuriser les matériaux critiques",
+                        "Interdépendance technologique entre concepteurs occidentaux et fonderies asiatiques"
+                    ],
+                    paragraphs: [
+                        "Des smartphones aux centres de données d'intelligence artificielle, l'économie contemporaine repose sur la finesse de gravure des microprocesseurs fabriqués en Asie de l'Est.",
+                        "Cette hyper-concentration géographique crée une interdépendance stratégique majeure : aucune puissance mondiale ne peut se passer à court terme des fonderies de Taïwan et de Corée du Sud.",
+                        "Pour les élèves de HGGSP, cette géopolitique du silicium illustre parfaitement comment la maîtrise d'un maillon technologique critique devient un instrument central de dissuasion et d'influence."
+                    ]
+                },
+
+                // --- AMÉRIQUE DU NORD ---
+                {
+                    id: "na-1",
+                    continent: "Amérique du Nord",
+                    theme: "Commerce & Réindustrialisation",
+                    title: "L'accord ACEUM et le « nearshoring » : la reconfiguration industrielle de l'Amérique du Nord",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Face aux tensions commerciales mondiales, les États-Unis, le Canada et le Mexique renforcent l'intégration de leurs chaînes de valeur industrielles autour des véhicules électriques et des batteries.",
+                    keypoints: [
+                        "Essor du « nearshoring » au nord du Mexique pour approvisionner le marché nord-américain",
+                        "Politiques industrielles américaines (CHIPS Act, IRA) et réactions des partenaires",
+                        "Gestion partagée des ressources en eau et des infrastructures frontalières"
+                    ],
+                    paragraphs: [
+                        "L'Amérique du Nord connaît une vague sans précédent de relocalisation industrielle de proximité, appelée « nearshoring », qui transforme le nord du Mexique en atelier manufacturier intégré aux États-Unis.",
+                        "Dans le même temps, le Canada valorise ses immenses réserves de minéraux critiques (lithium, nickel, cobalt) indispensables à la fabrication des batteries nord-américaines.",
+                        "Cette intégration économique soulève toutefois de nouveaux défis d'aménagement du territoire, notamment autour de l'accès à l'eau et à l'électricité dans les zones industrielles frontalières."
+                    ]
+                },
+                {
+                    id: "na-2",
+                    continent: "Amérique du Nord",
+                    theme: "Espaces Polaires & Nouvelles Frontières",
+                    title: "L'Arctique nord-américain : fonte des glaces, passage du Nord-Ouest et souveraineté",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Le réchauffement climatique accéléré dans le Grand Nord ouvre progressivement de nouvelles routes maritimes et ravive les enjeux de souveraineté entre le Canada, les États-Unis et le Groenland.",
+                    keypoints: [
+                        "Statut juridique disputé du passage du Nord-Ouest (eaux intérieures canadiennes vs détroit international)",
+                        "Modernisation des radars et infrastructures de surveillance dans le Grand Nord",
+                        "Préservation des écosystèmes polaires et droits des peuples autochtones inuits"
+                    ],
+                    paragraphs: [
+                        "L'Arctique se réchauffe près de quatre fois plus vite que la moyenne mondiale, modifiant en profondeur la géographie physique et stratégique de l'Amérique du Nord.",
+                        "Pour Ottawa comme pour Washington et Nuuk, l'enjeu consiste à concilier le développement économique contrôlé des ressources nordiques avec la protection d'un environnement d'une extrême fragilité.",
+                        "Le passage du Nord-Ouest incarne l'un des grands débats du droit international de la mer étudiés en spécialité HGGSP."
+                    ]
+                },
+
+                // --- AMÉRIQUE DU SUD ---
+                {
+                    id: "sa-1",
+                    continent: "Amérique du Sud",
+                    theme: "Ressources Critiques & Transition Verte",
+                    title: "Le « triangle du lithium » andin : l'or blanc de la transition énergétique mondiale",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "La Bolivie, le Chili et l'Argentine détiennent plus de la moitié des ressources mondiales de lithium et cherchent à transformer cette richesse minière en développement industriel local.",
+                    keypoints: [
+                        "Salars d'Uyuni (Bolivie), d'Atacama (Chili) et d'Hombre Muerto (Argentine)",
+                        "Défi de la gestion de l'eau dans des écosystèmes désertiques de haute altitude",
+                        "Volonté des États sud-américains de dépasser le simple modèle extractiviste"
+                    ],
+                    paragraphs: [
+                        "Indispensable aux batteries des véhicules électriques et au stockage des énergies renouvelables, le lithium place l'Amérique du Sud au cœur des stratégies énergétiques mondiales.",
+                        "Les gouvernements de la région cherchent désormais à attirer des usines de transformation et de raffinage sur place plutôt que d'exporter uniquement du carbonate de lithium brut.",
+                        "Toutefois, l'extraction par évaporation de saumures soulève d'importantes questions environnementales et sociales auprès des communautés locales quant à la préservation des nappes phréatiques."
+                    ]
+                },
+                {
+                    id: "sa-2",
+                    continent: "Amérique du Sud",
+                    theme: "Environnement & Diplomatie",
+                    title: "L'Amazonie et le bassin du Cerrado : diplomatie climatique et souveraineté forestière",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Sous l'impulsion du Brésil et des pays de l'Organisation du traité de coopération amazonienne (OTCA), la protection de la plus grande forêt tropicale du monde devient un pilier de la diplomatie sud-américaine.",
+                    keypoints: [
+                        "Rôle régulateur vital de l'Amazonie dans le cycle mondial du carbone et des précipitations",
+                        "Financements internationaux pour la conservation et lutte contre la déforestation illégale",
+                        "Équilibre entre puissance agro-exportatrice et préservation de la biodiversité"
+                    ],
+                    paragraphs: [
+                        "Poumon écologique de la planète et réservoir inestimable de biodiversité, l'Amazonie cristallise les tensions entre impératifs de développement agricole et urgence climatique globale.",
+                        "Les huit pays membres de l'OTCA défendent une approche fondée sur la souveraineté partagée et la valorisation de la bioéconomie forestière au bénéfice des populations amazoniennes.",
+                        "Ce dossier illustre le concept HGGSP d'environnement comme bien commun mondial face aux souverainetés nationales."
+                    ]
+                },
+
+                // --- OCÉANIE ---
+                {
+                    id: "oc-1",
+                    continent: "Océanie",
+                    theme: "Climat & Espaces Maritimes",
+                    title: "Les États insulaires du Pacifique en première ligne face à la montée des eaux",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Des Tuvalu aux Fidji, les nations du Forum des îles du Pacifique portent sur la scène onusienne la reconnaissance juridique de leurs frontières maritimes face au changement climatique.",
+                    keypoints: [
+                        "Immenses Zones Économiques Exclusives (ZEE) couvrant des millions de km² d'océan",
+                        "Diplomatie climatique active du Forum des îles du Pacifique à l'ONU",
+                        "Préservation des récifs coralliens et lutte contre la pêche illicite"
+                    ],
+                    paragraphs: [
+                        "Souvent qualifiés de « grands États océaniques » plutôt que de petits États insulaires, les pays d'Océanie administrent d'immenses espaces maritimes riches en biodiversité et en ressources halieutiques.",
+                        "Menacés directement par l'élévation du niveau de la mer et l'intensification des cyclones tropicaux, ces États ont obtenu des avancées juridiques majeures garantissant la pérennité de leurs ZEE même en cas de recul du trait de côte.",
+                        "Leur mobilisation démontre comment des États de taille modeste peuvent exercer une influence morale et juridique considérable dans les enceintes multilatérales."
+                    ]
+                },
+                {
+                    id: "oc-2",
+                    continent: "Océanie",
+                    theme: "Géostratégie & Ressources",
+                    title: "L'Australie : pivot énergétique et stratégique entre l'océan Indien et le Pacifique",
+                    signature: "Rédaction HGGSP — Élèves de Seconde & Première (EIT)",
+                    lead: "Premier exportateur mondial de minerai de fer et acteur majeur du lithium et de l'énergie solaire, l'Australie redéfinit ses alliances régionales dans l'espace Indo-Pacifique.",
+                    keypoints: [
+                        "Exportation d'énergie solaire vers l'Asie du Sud-Est par câbles sous-marins géants",
+                        "Équilibre entre partenariat économique asiatique et alliances de sécurité",
+                        "Protection de la Grande Barrière de Corail face au réchauffement océanique"
+                    ],
+                    paragraphs: [
+                        "À la charnière de deux océans, l'Australie occupe une position géostratégique singulière, à la fois fournisseur indispensable de matières premières pour les économies asiatiques et acteur clé des équilibres sécuritaires du Pacifique.",
+                        "Canberra mise désormais sur son vaste potentiel solaire et éolien pour devenir une superpuissance des énergies propres, exportant de l'hydrogène vert et de l'électricité vers ses voisins.",
+                        "Un exemple concret d'adaptation d'une puissance moyenne aux mutations géopolitiques et climatiques du XXIe siècle."
+                    ]
+                }
+            ];
+
+            const CONTINENTS_ORDER = [
+                "Afrique",
+                "Europe",
+                "Asie",
+                "Amérique du Nord",
+                "Amérique du Sud",
+                "Océanie"
+            ];
+
+            const CONTINENT_DESCRIPTIONS = {
+                "Afrique": "Transitions énergétiques euro-africaines, intégration continentale (ZLECAf) et sécurisation des façades maritimes.",
+                "Europe": "Autonomie stratégique industrielle et spatiale, recompositions en mer Baltique et gouvernance climatique.",
+                "Asie": "Routes maritimes de l'Indo-Pacifique, ascension de l'Inde et bataille technologique des semi-conducteurs.",
+                "Amérique du Nord": "Réindustrialisation régionale (ACEUM), corridors énergétiques et enjeux de souveraineté dans l'Arctique.",
+                "Amérique du Sud": "Géopolitique du triangle du lithium andin et diplomatie climatique autour du bassin amazonien.",
+                "Océanie": "Diplomatie climatique des États insulaires du Pacifique et rôle pivot de l'Australie dans l'Indo-Pacifique."
+            };
+
+            // Table de correspondance des noms de pays ECharts world.js -> 6 Continents
+            const COUNTRY_TO_CONTINENT = {
+                // AFRIQUE
+                "Algeria": "Afrique", "Angola": "Afrique", "Benin": "Afrique", "Botswana": "Afrique",
+                "Burkina Faso": "Afrique", "Burundi": "Afrique", "Cameroon": "Afrique", "Cape Verde": "Afrique",
+                "Central African Rep.": "Afrique", "Chad": "Afrique", "Comoros": "Afrique", "Congo": "Afrique",
+                "Dem. Rep. Congo": "Afrique", "Côte d'Ivoire": "Afrique", "Djibouti": "Afrique", "Egypt": "Afrique",
+                "Eq. Guinea": "Afrique", "Eritrea": "Afrique", "Ethiopia": "Afrique", "Gabon": "Afrique",
+                "Gambia": "Afrique", "Ghana": "Afrique", "Guinea": "Afrique", "Guinea-Bissau": "Afrique",
+                "Kenya": "Afrique", "Lesotho": "Afrique", "Liberia": "Afrique", "Libya": "Afrique",
+                "Madagascar": "Afrique", "Malawi": "Afrique", "Mali": "Afrique", "Mauritania": "Afrique",
+                "Mauritius": "Afrique", "Morocco": "Afrique", "Mozambique": "Afrique", "Namibia": "Afrique",
+                "Niger": "Afrique", "Nigeria": "Afrique", "Rwanda": "Afrique", "Sao Tome and Principe": "Afrique",
+                "Senegal": "Afrique", "Seychelles": "Afrique", "Sierra Leone": "Afrique", "Somalia": "Afrique",
+                "Somaliland": "Afrique", "South Africa": "Afrique", "S. Sudan": "Afrique", "Sudan": "Afrique",
+                "Swaziland": "Afrique", "eSwatini": "Afrique", "Tanzania": "Afrique", "Togo": "Afrique",
+                "Tunisia": "Afrique", "Uganda": "Afrique", "W. Sahara": "Afrique", "Zambia": "Afrique",
+                "Zimbabwe": "Afrique",
+
+                // EUROPE
+                "Albania": "Europe", "Andorra": "Europe", "Austria": "Europe", "Belarus": "Europe",
+                "Belgium": "Europe", "Bosnia and Herz.": "Europe", "Bulgaria": "Europe", "Croatia": "Europe",
+                "Czech Rep.": "Europe", "Czechia": "Europe", "Denmark": "Europe", "Estonia": "Europe",
+                "Finland": "Europe", "France": "Europe", "Germany": "Europe", "Greece": "Europe",
+                "Hungary": "Europe", "Iceland": "Europe", "Ireland": "Europe", "Italy": "Europe",
+                "Kosovo": "Europe", "Latvia": "Europe", "Liechtenstein": "Europe", "Lithuania": "Europe",
+                "Luxembourg": "Europe", "Macedonia": "Europe", "North Macedonia": "Europe", "Malta": "Europe",
+                "Moldova": "Europe", "Monaco": "Europe", "Montenegro": "Europe", "Netherlands": "Europe",
+                "Norway": "Europe", "Poland": "Europe", "Portugal": "Europe", "Romania": "Europe",
+                "Russia": "Europe", "San Marino": "Europe", "Serbia": "Europe", "Slovakia": "Europe",
+                "Slovenia": "Europe", "Spain": "Europe", "Sweden": "Europe", "Switzerland": "Europe",
+                "Ukraine": "Europe", "United Kingdom": "Europe", "Vatican": "Europe",
+
+                // ASIE
+                "Afghanistan": "Asie", "Armenia": "Asie", "Azerbaijan": "Asie", "Bahrain": "Asie",
+                "Bangladesh": "Asie", "Bhutan": "Asie", "Brunei": "Asie", "Cambodia": "Asie",
+                "China": "Asie", "Cyprus": "Asie", "N. Cyprus": "Asie", "Georgia": "Asie",
+                "India": "Asie", "Indonesia": "Asie", "Iran": "Asie", "Iraq": "Asie",
+                "Israel": "Asie", "Japan": "Asie", "Jordan": "Asie", "Kazakhstan": "Asie",
+                "Korea": "Asie", "Dem. Rep. Korea": "Asie", "Kuwait": "Asie", "Kyrgyzstan": "Asie",
+                "Lao PDR": "Asie", "Lebanon": "Asie", "Malaysia": "Asie", "Maldives": "Asie",
+                "Mongolia": "Asie", "Myanmar": "Asie", "Nepal": "Asie", "Oman": "Asie",
+                "Pakistan": "Asie", "Palestine": "Asie", "Philippines": "Asie", "Qatar": "Asie",
+                "Saudi Arabia": "Asie", "Singapore": "Asie", "Sri Lanka": "Asie", "Syria": "Asie",
+                "Taiwan": "Asie", "Tajikistan": "Asie", "Thailand": "Asie", "Timor-Leste": "Asie",
+                "Turkey": "Asie", "Turkmenistan": "Asie", "United Arab Emirates": "Asie",
+                "Uzbekistan": "Asie", "Vietnam": "Asie", "Yemen": "Asie",
+
+                // AMÉRIQUE DU NORD
+                "Bahamas": "Amérique du Nord", "Belize": "Amérique du Nord", "Canada": "Amérique du Nord",
+                "Costa Rica": "Amérique du Nord", "Cuba": "Amérique du Nord", "Dominican Rep.": "Amérique du Nord",
+                "El Salvador": "Amérique du Nord", "Greenland": "Amérique du Nord", "Guatemala": "Amérique du Nord",
+                "Haiti": "Amérique du Nord", "Honduras": "Amérique du Nord", "Jamaica": "Amérique du Nord",
+                "Mexico": "Amérique du Nord", "Nicaragua": "Amérique du Nord", "Panama": "Amérique du Nord",
+                "Puerto Rico": "Amérique du Nord", "Trinidad and Tobago": "Amérique du Nord",
+                "United States": "Amérique du Nord",
+
+                // AMÉRIQUE DU SUD
+                "Argentina": "Amérique du Sud", "Bolivia": "Amérique du Sud", "Brazil": "Amérique du Sud",
+                "Chile": "Amérique du Sud", "Colombia": "Amérique du Sud", "Ecuador": "Amérique du Sud",
+                "Falkland Is.": "Amérique du Sud", "Fr. Guiana": "Amérique du Sud", "Guyana": "Amérique du Sud",
+                "Paraguay": "Amérique du Sud", "Peru": "Amérique du Sud", "Suriname": "Amérique du Sud",
+                "Uruguay": "Amérique du Sud", "Venezuela": "Amérique du Sud",
+
+                // OCÉANIE
+                "Australia": "Océanie", "Fiji": "Océanie", "New Caledonia": "Océanie",
+                "New Zealand": "Océanie", "Papua New Guinea": "Océanie", "Solomon Is.": "Océanie",
+                "Vanuatu": "Océanie"
+            };
+
+            // 2. SYSTÈME DE ROTATION AUTOMATIQUE TOUS LES 3 JOURS (CYCLE DE 72 HEURES)
+            const CYCLE_DURATION_MS = 3 * 24 * 60 * 60 * 1000; // 72 heures exactes
+            const EPOCH_REFERENCE_MS = Date.UTC(2026, 0, 1, 0, 0, 0);
+
+            function getEditionCycleInfo() {
+                const nowMs = Date.now();
+                const elapsedSinceEpoch = Math.max(0, nowMs - EPOCH_REFERENCE_MS);
+                const cycleIndex = Math.floor(elapsedSinceEpoch / CYCLE_DURATION_MS);
+                const cycleStartMs = EPOCH_REFERENCE_MS + cycleIndex * CYCLE_DURATION_MS;
+                const nextEditionMs = cycleStartMs + CYCLE_DURATION_MS;
+                const remainingMs = Math.max(0, nextEditionMs - nowMs);
+
+                return {
+                    editionNumber: cycleIndex + 1,
+                    cycleIndex,
+                    cycleStartDate: new Date(cycleStartMs),
+                    remainingMs
+                };
+            }
+
+            const cycleInfo = getEditionCycleInfo();
+            const activeEditionArticles = ARTICLES_DATABASE.map((art, idx) => ({
+                ...art,
+                editionOrder: (idx + cycleInfo.cycleIndex) % ARTICLES_DATABASE.length
+            })).sort((a, b) => a.editionOrder - b.editionOrder);
+
+            const featuredArticleId = activeEditionArticles[0].id;
+
+            const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            });
+            const shortDateFormatter = new Intl.DateTimeFormat("fr-FR", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            });
+
+            document.getElementById("current-date-display").textContent =
+                dateFormatter.format(new Date()).replace(/^\w/, c => c.toUpperCase());
+            document.getElementById("edition-badge").textContent =
+                `Édition n°${cycleInfo.editionNumber} (Cycle du ${shortDateFormatter.format(cycleInfo.cycleStartDate)})`;
+
+            const cycleStartDateStr = shortDateFormatter.format(cycleInfo.cycleStartDate);
+
+            function updateCountdown() {
+                const { remainingMs } = getEditionCycleInfo();
+                const totalSeconds = Math.floor(remainingMs / 1000);
+                const days = Math.floor(totalSeconds / 86400);
+                const hours = Math.floor((totalSeconds % 86400) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+
+                const pad = n => String(n).padStart(2, "0");
+                document.getElementById("countdown-timer").textContent =
+                    `${days}j ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+            }
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+
+            // 3. ÉTAT DE SÉLECTION & CARTE MONDIALE INTERACTIVE ECHARTS
+            let selectedContinent = null;
+            let hoveredContinent = null;
+            let worldChart = null;
+            let allMapCountries = [];
+
+            function countArticlesByContinent(continentName) {
+                return activeEditionArticles.filter(a => a.continent === continentName).length;
+            }
+
+            function buildMapRegionsData() {
+                return allMapCountries.map(countryName => {
+                    const continent = COUNTRY_TO_CONTINENT[countryName] || null;
+                    const isHovered = continent && hoveredContinent === continent;
+                    const isSelected = continent && selectedContinent === continent;
+
+                    let areaColor = "#26365e";
+                    let borderColor = "#475569";
+                    let borderWidth = 0.6;
+
+                    if (!continent) {
+                        // Antarctique ou îlots non rattachés
+                        areaColor = "#131e3a";
+                        borderColor = "#1e293b";
+                    } else if (isHovered) {
+                        areaColor = "#f97316";
+                        borderColor = "#fed7aa";
+                        borderWidth = 1.1;
+                    } else if (isSelected) {
+                        areaColor = "#ea580c";
+                        borderColor = "#fbbf24";
+                        borderWidth = 1.1;
+                    }
+
+                    return {
+                        name: countryName,
+                        value: continent ? countArticlesByContinent(continent) : 0,
+                        continent: continent,
+                        itemStyle: {
+                            areaColor: areaColor,
+                            borderColor: borderColor,
+                            borderWidth: borderWidth
+                        },
+                        emphasis: {
+                            disabled: true // Gestion 100% contrôlée par notre état continent entier
+                        }
+                    };
+                });
+            }
+
+            function refreshWorldMapColors() {
+                if (!worldChart) return;
+                worldChart.setOption({
+                    series: [{
+                        name: "Continents",
+                        data: buildMapRegionsData()
+                    }]
+                });
+            }
+
+            function initWorldMap() {
+                const chartDom = document.getElementById("echarts-world-map");
+                if (!window.echarts || !echarts.getMap("world")) {
+                    chartDom.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
+                            <p class="text-amber-400 font-semibold text-sm">Carte géographique en cours d'initialisation...</p>
+                            <p class="text-slate-400 text-xs">Utilisez les boutons des continents ci-dessus pour filtrer les articles.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Extraire la liste exacte des entités géographiques de la carte mondiale
+                const worldGeoJson = echarts.getMap("world").geoJson;
+                allMapCountries = worldGeoJson.features
+                    .map(f => f.properties && f.properties.name)
+                    .filter(Boolean);
+
+                worldChart = echarts.init(chartDom);
+
+                const option = {
+                    backgroundColor: "transparent",
+                    tooltip: {
+                        trigger: "item",
+                        backgroundColor: "rgba(6, 10, 23, 0.95)",
+                        borderColor: "#f97316",
+                        borderWidth: 1,
+                        padding: [10, 14],
+                        textStyle: {
+                            color: "#f8fafc",
+                            fontFamily: "Inter, sans-serif",
+                            fontSize: 12
+                        },
+                        formatter: function (params) {
+                            const continent = COUNTRY_TO_CONTINENT[params.name];
+                            if (!continent) {
+                                return `<div style="color:#94a3b8;">${params.name}</div>`;
+                            }
+                            const count = countArticlesByContinent(continent);
+                            return `
+                                <div style="font-weight:800;color:#fb923c;font-size:14px;margin-bottom:2px;">${continent}</div>
+                                <div style="color:#cbd5e1;font-size:11px;margin-bottom:4px;">Territoire : ${params.name}</div>
+                                <div style="color:#ffffff;font-weight:600;">${count} article${count > 1 ? "s" : ""} disponible${count > 1 ? "s" : ""}</div>
+                                <div style="color:#94a3b8;font-size:10px;margin-top:3px;">Cliquer pour filtrer ce continent</div>
+                            `;
+                        }
+                    },
+                    geo: {
+                        map: "world",
+                        roam: false,
+                        zoom: 1.18,
+                        center: [12, 18],
+                        itemStyle: {
+                            areaColor: "#26365e",
+                            borderColor: "#475569",
+                            borderWidth: 0.6
+                        },
+                        regions: buildMapRegionsData()
+                    },
+                    series: [
+                        {
+                            name: "Continents",
+                            type: "map",
+                            geoIndex: 0,
+                            data: buildMapRegionsData()
+                        },
+                        {
+                            name: "Tunis (EIT)",
+                            type: "effectScatter",
+                            coordinateSystem: "geo",
+                            zlevel: 3,
+                            rippleEffect: {
+                                brushType: "stroke",
+                                scale: 3.5
+                            },
+                            symbolSize: 8,
+                            itemStyle: {
+                                color: "#ef4444",
+                                borderColor: "#ffffff",
+                                borderWidth: 1.5
+                            },
+                            tooltip: {
+                                formatter: function () {
+                                    return `
+                                        <div style="font-weight:800;color:#f87171;font-size:13px;">Tunis — Tunisie</div>
+                                        <div style="color:#e2e8f0;font-size:11px;">École Internationale de Tunis (EIT)</div>
+                                        <div style="color:#fbbf24;font-size:10px;margin-top:2px;">Siège de la rédaction Geopolitica</div>
+                                    `;
+                                }
+                            },
+                            data: [
+                                { name: "Tunis (EIT)", value: [10.1815, 36.8065, 1] }
+                            ]
+                        }
+                    ]
+                };
+
+                worldChart.setOption(option);
+
+                // Survol : illumine TOUT le continent en orange vif (#f97316)
+                worldChart.on("mouseover", function (params) {
+                    if (params.seriesName === "Continents") {
+                        const continent = COUNTRY_TO_CONTINENT[params.name] || null;
+                        if (hoveredContinent !== continent) {
+                            hoveredContinent = continent;
+                            refreshWorldMapColors();
+                        }
+                    }
+                });
+
+                // Sortie du curseur : remet immédiatement le continent à sa couleur d'origine
+                worldChart.on("mouseout", function (params) {
+                    if (params.seriesName === "Continents" && hoveredContinent !== null) {
+                        hoveredContinent = null;
+                        refreshWorldMapColors();
+                    }
+                });
+
+                // Sécurité supplémentaire si la souris sort directement du conteneur de la carte
+                chartDom.addEventListener("mouseleave", function () {
+                    if (hoveredContinent !== null) {
+                        hoveredContinent = null;
+                        refreshWorldMapColors();
+                    }
+                });
+
+                // Clic sur un continent : filtre et fait défiler vers les articles
+                worldChart.on("click", function (params) {
+                    if (params.seriesName === "Continents") {
+                        const continent = COUNTRY_TO_CONTINENT[params.name];
+                        if (continent) {
+                            const nextSelection = selectedContinent === continent ? null : continent;
+                            selectContinent(nextSelection, true);
+                        }
+                    }
+                });
+
+                window.addEventListener("resize", function () {
+                    if (worldChart) worldChart.resize();
+                });
+            }
+
+            // 4. RENDU DES PILULES DE FILTRE, DU TICKER ET DES ARTICLES
+            const pillsContainer = document.getElementById("continent-pills");
+            const resetFilterBtn = document.getElementById("reset-filter-btn");
+            const bannerResetBtn = document.getElementById("banner-reset-btn");
+            const activeBanner = document.getElementById("active-continent-banner");
+
+            document.getElementById("total-articles-count").textContent = activeEditionArticles.length;
+
+            function renderContinentPills() {
+                pillsContainer.innerHTML = "";
+                CONTINENTS_ORDER.forEach(continent => {
+                    const count = countArticlesByContinent(continent);
+                    const isSelected = selectedContinent === continent;
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = isSelected
+                        ? "px-3 py-2 rounded-lg text-xs font-bold bg-amber-500 text-navy-950 shadow transition-all cursor-pointer"
+                        : "px-3 py-2 rounded-lg text-xs font-semibold bg-navy-800 hover:bg-orange-500 text-slate-200 hover:text-white border border-slate-700 transition-all cursor-pointer";
+                    btn.textContent = `${continent} (${count})`;
+                    btn.addEventListener("click", () => {
+                        selectContinent(isSelected ? null : continent, false);
+                    });
+                    pillsContainer.appendChild(btn);
+                });
+
+                resetFilterBtn.className = selectedContinent === null
+                    ? "px-3.5 py-2 rounded-lg text-xs font-bold bg-orange-500 text-white shadow transition-all cursor-pointer"
+                    : "px-3.5 py-2 rounded-lg text-xs font-bold bg-navy-800 hover:bg-orange-500 text-slate-200 hover:text-white border border-slate-700 transition-all cursor-pointer";
+            }
+
+            function renderTicker() {
+                const ticker = document.getElementById("news-ticker");
+                const itemsHtml = activeEditionArticles.map(art => `
+                    <button type="button" data-article-id="${art.id}" class="ticker-item inline-flex items-center gap-2 hover:text-orange-400 transition-colors cursor-pointer">
+                        <span class="text-orange-400 font-bold">[${art.continent}]</span>
+                        <span>${art.title}</span>
+                    </button>
+                `).join('<span class="text-slate-600">•</span>');
+
+                ticker.innerHTML = itemsHtml + '<span class="text-slate-600 mx-4">•</span>' + itemsHtml;
+
+                ticker.querySelectorAll(".ticker-item").forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        openArticleModal(btn.getAttribute("data-article-id"));
+                    });
+                });
+            }
+
+            function selectContinent(continentName, shouldScroll) {
+                selectedContinent = continentName;
+                refreshWorldMapColors();
+
+                const sectionTitle = document.getElementById("articles-section-title");
+                if (selectedContinent) {
+                    activeBanner.classList.remove("hidden");
+                    document.getElementById("banner-continent-title").textContent = selectedContinent;
+                    document.getElementById("banner-continent-desc").textContent =
+                        CONTINENT_DESCRIPTIONS[selectedContinent] || "";
+                    sectionTitle.textContent = `Dossiers Géopolitiques — ${selectedContinent}`;
+                } else {
+                    activeBanner.classList.add("hidden");
+                    sectionTitle.textContent = "Édition Actuelle — Tous les Continents";
+                }
+
+                renderContinentPills();
+                renderArticles();
+
+                if (shouldScroll && selectedContinent) {
+                    const anchor = document.getElementById("articles-anchor");
+                    if (anchor) {
+                        anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                }
+            }
+
+            resetFilterBtn.addEventListener("click", () => selectContinent(null, false));
+            bannerResetBtn.addEventListener("click", () => selectContinent(null, false));
+
+            function renderArticles() {
+                const filtered = selectedContinent
+                    ? activeEditionArticles.filter(a => a.continent === selectedContinent)
+                    : activeEditionArticles;
+
+                document.getElementById("visible-articles-count").textContent = filtered.length;
+
+                const featuredContainer = document.getElementById("featured-article-container");
+                const gridContainer = document.getElementById("articles-grid");
+
+                if (filtered.length === 0) {
+                    featuredContainer.innerHTML = "";
+                    gridContainer.innerHTML = `<p class="text-slate-400 col-span-full text-center py-8">Aucun article disponible pour cette sélection.</p>`;
+                    return;
+                }
+
+                const heroArticle = filtered[0];
+                const isGlobalLead = heroArticle.id === featuredArticleId;
+
+                featuredContainer.innerHTML = `
+                    <article class="bg-navy-900 text-white rounded-2xl overflow-hidden shadow-xl border border-slate-800 hover:border-orange-500/70 transition-all group">
+                        <div class="p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row gap-6 lg:gap-10 items-start justify-between">
+                            <div class="space-y-4 flex-1">
+                                <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+                                    <span class="bg-orange-500 text-white px-3 py-1 rounded-full uppercase tracking-wider">
+                                        ${isGlobalLead ? "Grand Dossier À la Une" : "Focus Régional"} • ${heroArticle.continent}
+                                    </span>
+                                    <span class="bg-navy-800 text-amber-300 border border-slate-700 px-3 py-1 rounded-full">
+                                        ${heroArticle.theme}
+                                    </span>
+                                    <span class="text-slate-400">Édition du ${cycleStartDateStr}</span>
+                                </div>
+
+                                <h3 class="font-serif text-2xl sm:text-3xl lg:text-4xl font-black leading-tight group-hover:text-orange-400 transition-colors">
+                                    ${heroArticle.title}
+                                </h3>
+
+                                <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                                    ${heroArticle.lead}
+                                </p>
+
+                                <div class="pt-3 flex flex-wrap items-center justify-between gap-4 border-t border-slate-800">
+                                    <span class="text-xs font-semibold text-amber-300">
+                                        ${heroArticle.signature}
+                                    </span>
+                                    <button type="button" data-read-id="${heroArticle.id}" class="read-article-btn inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-5 py-3 rounded-xl shadow transition-all cursor-pointer">
+                                        Lire l'analyse complète
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="w-full lg:w-80 bg-navy-950/90 border border-slate-800 rounded-xl p-5 shrink-0">
+                                <div class="text-xs font-extrabold uppercase tracking-wider text-amber-400 mb-3">
+                                    Repères Clés HGGSP
+                                </div>
+                                <ul class="space-y-2.5 text-xs text-slate-300">
+                                    ${heroArticle.keypoints.map(kp => `
+                                        <li class="flex items-start gap-2">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0"></span>
+                                            <span>${kp}</span>
+                                        </li>
+                                    `).join("")}
+                                </ul>
+                            </div>
+                        </div>
+                    </article>
+                `;
+
+                const remainingArticles = filtered.slice(1);
+                gridContainer.innerHTML = remainingArticles.map(art => `
+                    <article class="bg-navy-900 rounded-2xl border border-slate-800 shadow-lg hover:shadow-2xl hover:border-orange-500/70 transition-all flex flex-col justify-between overflow-hidden group">
+                        <div class="p-6 space-y-3">
+                            <div class="flex items-center justify-between gap-2 text-[11px] font-bold">
+                                <span class="bg-navy-950 text-orange-400 border border-orange-500/30 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                                    ${art.continent}
+                                </span>
+                                <span class="text-slate-400 truncate">${art.theme}</span>
+                            </div>
+
+                            <h3 class="font-serif text-xl font-bold text-white leading-snug group-hover:text-orange-400 transition-colors">
+                                ${art.title}
+                            </h3>
+
+                            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed line-clamp-3">
+                                ${art.lead}
+                            </p>
+                        </div>
+
+                        <div class="px-6 py-4 bg-navy-950/70 border-t border-slate-800 flex flex-col gap-3">
+                            <div class="text-[11px] font-semibold text-amber-300/90">
+                                ${art.signature}
+                            </div>
+                            <button type="button" data-read-id="${art.id}" class="read-article-btn w-full inline-flex items-center justify-center gap-1.5 bg-navy-800 hover:bg-orange-500 text-white font-bold text-xs py-2.5 px-4 rounded-xl border border-slate-700 hover:border-orange-500 transition-colors cursor-pointer">
+                                Lire l'article
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </article>
+                `).join("");
+
+                document.querySelectorAll(".read-article-btn").forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        openArticleModal(btn.getAttribute("data-read-id"));
+                    });
+                });
+            }
+
+            // 5. MODALE DE LECTURE D'ARTICLE
+            const articleModal = document.getElementById("article-modal");
+            const closeArticleBtns = [
+                document.getElementById("close-article-modal"),
+                document.getElementById("close-article-modal-bottom")
+            ];
+
+            function openArticleModal(articleId) {
+                const art = ARTICLES_DATABASE.find(a => a.id === articleId);
+                if (!art) return;
+
+                document.getElementById("modal-article-continent").textContent = art.continent;
+                document.getElementById("modal-article-theme").textContent = art.theme;
+                document.getElementById("modal-article-date").textContent = `Édition du ${cycleStartDateStr}`;
+                document.getElementById("modal-article-title").textContent = art.title;
+                document.getElementById("modal-article-signature").textContent = art.signature;
+                document.getElementById("modal-article-lead").textContent = art.lead;
+
+                document.getElementById("modal-article-keypoints").innerHTML = art.keypoints
+                    .map(kp => `<li>${kp}</li>`)
+                    .join("");
+
+                document.getElementById("modal-article-body").innerHTML = art.paragraphs
+                    .map(p => `<p>${p}</p>`)
+                    .join("");
+
+                articleModal.classList.remove("hidden");
+                document.body.style.overflow = "hidden";
+            }
+
+            function closeArticleModal() {
+                articleModal.classList.add("hidden");
+                document.body.style.overflow = "";
+            }
+
+            closeArticleBtns.forEach(btn => btn.addEventListener("click", closeArticleModal));
+            articleModal.addEventListener("click", (e) => {
+                if (e.target === articleModal) closeArticleModal();
+            });
+
+            // 6. FORMULAIRE DE PROPOSITION D'IDÉES D'ARTICLES
+            const proposeModal = document.getElementById("propose-modal");
+            const openProposeBtn = document.getElementById("open-propose-modal");
+            const closeProposeBtn = document.getElementById("close-propose-modal");
+            const proposeForm = document.getElementById("propose-form");
+            const copyProposalBtn = document.getElementById("copy-proposal-btn");
+            const copyEmailOnlyBtn = document.getElementById("copy-email-only-btn");
+            const copyFeedback = document.getElementById("copy-feedback");
+
+            openProposeBtn.addEventListener("click", () => {
+                copyFeedback.classList.add("hidden");
+                proposeModal.classList.remove("hidden");
+                document.body.style.overflow = "hidden";
+            });
+
+            function closeProposeModal() {
+                proposeModal.classList.add("hidden");
+                document.body.style.overflow = "";
+            }
+
+            closeProposeBtn.addEventListener("click", closeProposeModal);
+            proposeModal.addEventListener("click", (e) => {
+                if (e.target === proposeModal) closeProposeModal();
+            });
+
+            function copyTextToClipboard(text, message) {
+                const tempTextarea = document.createElement("textarea");
+                tempTextarea.value = text;
+                tempTextarea.style.position = "fixed";
+                tempTextarea.style.left = "-9999px";
+                document.body.appendChild(tempTextarea);
+                tempTextarea.select();
+                try {
+                    document.execCommand("copy");
+                    copyFeedback.textContent = message;
+                    copyFeedback.classList.remove("hidden");
+                } catch (err) {
+                    console.error("Erreur lors de la copie :", err);
+                }
+                document.body.removeChild(tempTextarea);
+            }
+
+            function buildProposalFormattedText() {
+                const theme = document.getElementById("prop-theme").value;
+                const continent = document.getElementById("prop-continent").value;
+                const level = document.getElementById("prop-level").value;
+                const title = document.getElementById("prop-title").value.trim() || "(Non précisé)";
+                const summary = document.getElementById("prop-summary").value.trim() || "(Non précisé)";
+
+                return [
+                    "PROPOSITION D'ARTICLE — GEOPOLITICA (EIT)",
+                    "==========================================",
+                    `• Type d'article : ${theme}`,
+                    `• Continent concerné : ${continent}`,
+                    `• Classe à l'EIT : ${level}`,
+                    `• Titre / Sujet envisagé : ${title}`,
+                    "",
+                    "Résumé & problématique HGGSP :",
+                    summary,
+                    "",
+                    "— Envoyé depuis le portail Geopolitica (École Internationale de Tunis)"
+                ].join("\n");
+            }
+
+            copyEmailOnlyBtn.addEventListener("click", () => {
+                copyTextToClipboard(
+                    "badis.klingen@gmail.com",
+                    "Adresse e-mail badis.klingen@gmail.com copiée dans le presse-papiers !"
+                );
+            });
+
+            copyProposalBtn.addEventListener("click", () => {
+                copyTextToClipboard(
+                    buildProposalFormattedText(),
+                    "Le message complet de votre proposition d'article a été copié !"
+                );
+            });
+
+            proposeForm.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const theme = document.getElementById("prop-theme").value;
+                const continent = document.getElementById("prop-continent").value;
+                const title = document.getElementById("prop-title").value.trim();
+
+                const subject = encodeURIComponent(`[Geopolitica EIT] Proposition d'article (${continent} — ${theme}) : ${title}`);
+                const body = encodeURIComponent(buildProposalFormattedText());
+
+                window.location.href = `mailto:badis.klingen@gmail.com?subject=${subject}&body=${body}`;
+            });
+
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    closeArticleModal();
+                    closeProposeModal();
+                }
+            });
+
+            // Initialisation au chargement complet
+            window.addEventListener("load", function () {
+                initWorldMap();
+                renderContinentPills();
+                renderTicker();
+                renderArticles();
+            });
+        })();
+    </script>
+</body>
+</html>
